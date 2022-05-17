@@ -8,7 +8,12 @@ double *V, *V2;
 int *converge;
 int *iteraciones;
 
+int trabajando;
+int esperando;
+
 pthread_barrier_t barrera;
+pthread_mutex_t m1, m2, mC;
+pthread_cond_t cond1;
 
 void swap( double ** x, double ** y){
 	double *temp = *x;
@@ -41,16 +46,6 @@ void *function(void *arg) {
 
 	while (!converge[tid]) {
 
-		/*
-		if (tid == 0) {
-			begin++;
-			V2local[0] = (Vlocal[0] + Vlocal[1])/2;
-		} else if (tid == T-1) {
-			end--;
-			V2local[N-1] = (Vlocal[N-1] + Vlocal[N-2])/2;
-		}
-		*/
-
 		//reduccion
 		for (int i = begin+1; i < end-1; i++){
 			V2local[i] = (Vlocal[i-1] + Vlocal[i] + Vlocal[i+1])/3;
@@ -64,9 +59,8 @@ void *function(void *arg) {
 
 		converge[tid] = 1;
 		while ((i < end) && (converge[tid])){ 
-			if (fabs(aux - V2local[i]) > 0.05){//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+			if (fabs(aux - V2local[i]) > 0.5){//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 				converge[tid] = 0;
-				//printf("la resta me dio %f\n", fabs(aux - V2local[i]));
 			}
 			i++;
 		}
@@ -75,9 +69,31 @@ void *function(void *arg) {
 
 		swap(&Vlocal, &V2local);
 
-		//if (iteraciones[tid] % 5000 == 0) printf("Thread %d termina iteracion %d\n", tid, iteraciones[tid]);
+		// esto es una especie de barrera para esperar a los threads que están trabajando
+		pthread_mutex_lock(&m1);
+		esperando++;
+		printf("Thread %d dice: esperando = %d, trabajando = %d\n", tid, esperando, trabajando);
+		if (esperando == trabajando) {
+			esperando = 0;
+			pthread_mutex_unlock(&m1);
+
+			pthread_mutex_lock(&mC);
+			pthread_cond_broadcast(&cond1);
+			pthread_mutex_unlock(&mC);
+		} else {
+			pthread_mutex_unlock(&m1);
+
+			pthread_mutex_lock(&mC);
+			pthread_cond_wait(&cond1, &mC);
+			pthread_mutex_unlock(&mC);
+		}
+
+		printf("Thread %d, iteracion %d\n", tid, iteraciones[tid]);
 	}
 	printf("THREAD %d TERMINA\n", tid);
+	pthread_mutex_lock(&m2);
+	trabajando--;
+	pthread_mutex_unlock(&m2);
 
 	pthread_barrier_wait(&barrera);
 
@@ -105,6 +121,7 @@ int main(int argc, const char *argv[])
 		converge[i] = 0;
 		iteraciones[i] = 0;
 	}
+	trabajando = T; esperando = 0;
 
 	//inicializacion del arreglo
 	for (int i = 0; i < N; i++){
@@ -119,6 +136,9 @@ int main(int argc, const char *argv[])
 	double timetick = dwalltime();
 
 	pthread_barrier_init(&barrera, NULL, T+1);	// barrera de T+1 threads (se cuenta el main)
+	pthread_mutex_init(&m1, NULL);
+	pthread_mutex_init(&m2, NULL);
+	pthread_mutex_init(&mC, NULL);
 
 	for (int id = 0; id < T; id++) {
 		thread_ids[id] = id;
@@ -126,8 +146,6 @@ int main(int argc, const char *argv[])
 	}
 
 	pthread_barrier_wait(&barrera);
-
-	// cuando terminan todos los threads, calculo el maximo de iteraciones
 
 	int max_iter = -1;
 	for (int i = 0; i < T; i++) {
@@ -144,6 +162,11 @@ int main(int argc, const char *argv[])
 		printf (" V2[%d] = %f \n",i, V2[i]); 
 	}
 	printf ("iteraciones = %d", max_iter);
+
+	pthread_barrier_destroy(&barrera);
+	pthread_mutex_destroy(&m1);
+	pthread_mutex_destroy(&m2);
+	pthread_mutex_destroy(&mC);
 
 	return 0;
 }

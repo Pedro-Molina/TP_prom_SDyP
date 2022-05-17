@@ -2,34 +2,34 @@
 #include <stdlib.h>
 #include <math.h>
 
-void swap( float ** x, float ** y){
+void swap( double ** x, double ** y){
 
-		float *temp = *x;
+		double *temp = *x;
     *x = *y;
     *y = temp;
 }
 
 int main(int argc,char*argv[]){
 	int N;
-	float *V, *V2;
+	double *V, *V2;
 	int i, iteraciones = 0;
-	int converge =0;
-	float aux;
+	int converge = 0;
+	double aux;
 
  //Controla los argumentos al programa
 	if ((argc != 2) || ((N = atoi(argv[1])) <= 0) )
   {
-    printf("\nUsar: %s n\n  n: Dimension de la matriz (nxn X nxn)\n", argv[0]);
+    printf("\nUsar: %s n\n  n: Longitud del vector\n", argv[0]);
     exit(1);
   }
 
  //Aloca memoria para las matrices
-  V=(float*)malloc(sizeof(float)*N);
-	V2=(float*)malloc(sizeof(float)*N);
+  V=(double*)malloc(sizeof(double)*N);
+	V2=(double*)malloc(sizeof(double)*N);
 	
 	//inicializacion del arreglo
 	for (i = 0; i < N; i++){
-		V[i] = (float)rand()/(float)(RAND_MAX); //funciona en MPI?
+		V[i] = (double)rand()/(double)(RAND_MAX); //funciona en MPI?
 		printf (" V[%d] = %f \n",i, V[i]); 
 	}
 	//loop principal
@@ -48,16 +48,16 @@ int main(int argc,char*argv[]){
 		aux = V2[0];
 		//chequeo de convergencia
 		while ((i < N) && (converge)){ 
-			if ((fabs(aux - V2[i])) > 0.01){//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+			if (fabs(aux - V2[i]) > 0.01){//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 					//printf ("%f - " , fabs(V2[0]-V2[i]));
 					converge = 0;
 			}
 			i++;
 		}
 		
-		swap(&V, &V2);// no es necesario, puedo asignar simplemente v2 a v, porque v2 se sobreescribe
+		swap(&V, &V2);
 		iteraciones++;
-		printf ("iteracion = %d\n", iteraciones);
+		//printf ("iteracion = %d\n", iteraciones);
 	}
 	
 	
