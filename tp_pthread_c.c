@@ -188,17 +188,17 @@ int main(int argc, const char *argv[])
 
 	printf("Tiempo en segundos %f\n", dwalltime() - timetick);
 
-	for (int i = 0; i < N; i++)
+	/*for (int i = 0; i < N; i++)
 	{
 		printf(" V2[%d] = %f \n", i, V2[i]);
-	}
-	printf("iteraciones = %d", max_iter);
+	}*/
+	printf("iteraciones = %d\n", max_iter);
 
 
-	for (int i = 0; i < T; i++)
+	/*for (int i = 0; i < T; i++)
 	{
 		printf(" converge[%d] = %d \n", i, converge[i]);
-	}
+	}*/
 
 	pthread_barrier_destroy(&barrera1);
 	pthread_barrier_destroy(&barrera2);
