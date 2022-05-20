@@ -1,0 +1,7 @@
+- Para la realizacion del swap, se debe esparear a que todos terminen la reduccions ya que sino se puede tener problemas de seccion critica.
+- Porque se bloquea el secuencial.
+
+- Tema de barrera, mantego porcesos ociosos para la ultilizacion de barrera entre procesos a la hora de hacer el swap? Ya que lagunos pueden terminar antes que otros y asi quedarian algunos procesos esperando en una barrera a partir de la cual nunca avanzarian.
+
+- Evito completamente el problema de las secciones criticas evitando la solapacion de los rangos de cada hilo?
+
