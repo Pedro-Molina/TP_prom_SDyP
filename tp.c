@@ -82,4 +82,8 @@ int main(int argc, char *argv[])
 	
 	printf ("Iteraciones = %d\n", iteraciones);
 
+	/*for (int i = 0; i < N; i++) {
+  	printf("V[%d] = %f\n", i, V[i]);
+	}*/
+
 }

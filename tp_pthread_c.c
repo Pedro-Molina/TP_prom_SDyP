@@ -119,9 +119,9 @@ int main(int argc, const char *argv[])
 	N = atoi(argv[1]);
 	T = atoi(argv[2]);
 
-	// Aloca memoria para las matrices
-	V = (double *)malloc(sizeof(double) * N);
-	V2 = (double *)malloc(sizeof(double) * N);
+	// Aloca memoria para los vectores
+	V = (double *) malloc(sizeof(double) * N);
+	V2 = (double *) malloc(sizeof(double) * N);
 
 	converge = (int *)malloc(sizeof(int) * T);
 	iteraciones = (int *)malloc(sizeof(int) * T);
@@ -136,7 +136,6 @@ int main(int argc, const char *argv[])
 	for (int i = 0; i < N; i++)
 	{
 		V[i] = (double)rand() / (double)(RAND_MAX); // funciona en MPI?
-		//printf(" V[%d] = %f \n", i, V[i]);
 	}
 
 	pthread_t myThreads[T];
