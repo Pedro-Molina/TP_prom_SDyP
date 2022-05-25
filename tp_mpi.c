@@ -6,7 +6,7 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define N 2048
+#define N 512
 
 void swap(double **x, double **y)
 {
