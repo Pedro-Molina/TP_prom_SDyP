@@ -1,5 +1,3 @@
-//FUNCIONA PERO MIENTRAS SE INCEMENTAN LOS HILOS INCREMENTA EL TIEMPO DE EJECUCION, CAPAZ MEJORA IMPLEMENTANDO BARRERAS ENTRE HILOS (??)
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <pthread.h>
@@ -48,11 +46,11 @@ void *function(void *arg)
 		M2[0] = (M[0] + M[1] + M[N] + M[N + 1]) / 4.0; 
 		begin++;
 	}
+
     while (!convergenciaGlobal) 
     {
         if (tid == 0)
         {
-            M2[0] = (M[0] + M[1] + M[N] + M[N + 1]) / 4.0;                         // superior izq
             M2[N - 1] = (M[N - 1] + M[N - 2] + M[2 * N - 1] + M[2 * N - 2]) / 4.0; // superior derecha
 
             // borde superior
@@ -68,7 +66,7 @@ void *function(void *arg)
         else if (tid == (T - 1))
         {
             M2[(N-1)*N] = (M[(N-2)*N] + M[(N-2)*N+1] + M[(N-1)*N] + M[(N-1)*N+1]) / 4.0;	// inferior izq
-            M2[N*N-1] = (M[N*N-1] + M[N*N-2] + M[(N-1)*N-1] + M[(N-1)*N-2]) / 4.0;				// inferior der
+            M2[N*N-1] = (M[N*N-1] + M[N*N-2] + M[(N-1)*N-1] + M[(N-1)*N-2]) / 4.0;			// inferior der
 
             // borde inferior
             for (j = 1; j < N-1; j++) {
@@ -130,23 +128,22 @@ void *function(void *arg)
 		// pasada la barrera, terminaron todos los trabajadores y el main chequea la convergencia
 		if (tid == 0)
 		{
-		// chequear convergencia
-		convergenciaGlobal = 1;
-		int i = 0;
-		while ((i < T) && (convergenciaGlobal))
-		{
-			if (converge[i++] == 0)
+			// chequear convergencia
+			convergenciaGlobal = 1;
+			int i = 0;
+			while ((i < T) && (convergenciaGlobal))
 			{
-				convergenciaGlobal = 0;
+				if (converge[i++] == 0)
+				{
+					convergenciaGlobal = 0;
+				}
 			}
-		}
 
-		swap(&M, &M2);
+			swap(&M, &M2);
 
-		M2[0] = (M[0] + M[1] + M[N] + M[N + 1]) / 4.0;
-		
+			M2[0] = (M[0] + M[1] + M[N] + M[N + 1]) / 4.0;
 
-		iteraciones ++;
+			iteraciones ++;
 		}
 		pthread_barrier_wait(&barrera2);
 		// pasado el chequeo de convergencia, seguimos trabajando
@@ -193,8 +190,8 @@ int main(int argc, const char *argv[])
 
 	double timetick = dwalltime();
 
-    pthread_barrier_init(&barrera1, NULL, T ); // barrera de T+1 threads (se cuenta el main)
-	pthread_barrier_init(&barrera2, NULL, T ); // barrera de T+1 threads (se cuenta el main)
+    pthread_barrier_init(&barrera1, NULL, T); // barrera de T+1 threads (se cuenta el main)
+	pthread_barrier_init(&barrera2, NULL, T); // barrera de T+1 threads (se cuenta el main)
 
 
 	for (int id = 0; id < T; id++)
@@ -210,7 +207,7 @@ int main(int argc, const char *argv[])
 	}
 
 	printf("Tiempo en segundos %f\n", dwalltime() - timetick);
-	printf("iteraciones = %d\n", iteraciones);
+	printf("Iteraciones = %d\n", iteraciones);
 
     /*for (i = 0; i < N; i++){
 		for (j = 0; j < N; j++) {

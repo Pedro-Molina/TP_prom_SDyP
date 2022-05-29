@@ -1,5 +1,3 @@
-// FUNCIONA PERO MIENTRAS SE INCEMENTAN LOS HILOS INCREMENTA EL TIEMPO DE EJECUCION, CAPAZ MEJORA IMPLEMENTANDO BARRERAS ENTRE HILOS (??)
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <mpi.h>
@@ -41,7 +39,6 @@ void root_process(int size)
     // Aloca memoria para los vectores
     M = (double *)malloc(sizeof(double) * N * N);
     M2 = (double *)malloc(sizeof(double) * N * N);
-    //M2 = (double *)malloc(sizeof(double) * (block_size + N));
 
     // Inicializacion del arreglo
     for (int i = 0; i < N; i++)
@@ -59,8 +56,8 @@ void root_process(int size)
     // Enviar los bloques a cada proceso
 
     // Enviar los bloques a cada proceso //Scatter
-	//MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
-	MPI_Scatter(M, block_size, MPI_DOUBLE, M2, block_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    //MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
+    MPI_Scatter(M, block_size, MPI_DOUBLE, M2, block_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 
     printf("Enviado todo\n");
@@ -124,7 +121,7 @@ void root_process(int size)
             M2[i * N + N - 1] = suma / 6.0;
         }
 
-        MPI_Bcast(M2, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD); //tamos por aqui
+        MPI_Bcast(M2, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
         
         i = 0;
         j = 1;
@@ -148,26 +145,23 @@ void root_process(int size)
 
         // Chequeo de convergencia global
         MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
+    }
 
-
-  }
     printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
 
-
     //MPI_Gather(part, N/nProcs, MPI_CHAR, message, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
-	MPI_Gather(M2, block_size, MPI_DOUBLE, M2, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gather(M2, block_size, MPI_DOUBLE, M2, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
         {
-            printf("M2[%d] = %f ", i, M2[i * N + j]);
+          printf("M2[%d] = %f ", i, M2[i * N + j]);
         }
         printf("\n");
     }
 
     printf("Iteraciones: %d\n", iteraciones);
-    
 
 }
 
@@ -196,9 +190,6 @@ void worker_process(int rank, int size)
     // Recibir el bloque
     //MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Scatter(M+N,(N * N) / size, MPI_DOUBLE, M+N, (N * N) / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-
-    //MPI_Recv(M, block_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
     printf("%d: Recibi mi vector\n", rank);
     

@@ -1,12 +1,10 @@
-//FUNCIONA PERO MIENTRAS SE INCEMENTAN LOS HILOS INCREMENTA EL TIEMPO DE EJECUCION, CAPAZ MEJORA IMPLEMENTANDO BARRERAS ENTRE HILOS (??)
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <mpi.h>
 #include <math.h>
 #include <sys/time.h>
 
-#define N 4096
+#define N 512
 
 void swap(double **x, double **y)
 {
@@ -32,8 +30,6 @@ void root_process(int size) {
 	int convergeGlobal = 0;
 	double timetick;
 
-	printf("Root\n");
-
 	// Aloca memoria para los vectores
 	V = (double *) malloc(sizeof(double) * N);
 	V2 = (double *) malloc(sizeof(double) * N);
@@ -41,28 +37,26 @@ void root_process(int size) {
 	// Inicializacion del arreglo
 	for (int i = 0; i < N; i++)
 	{
-		V[i] = (double)rand() / (double)(RAND_MAX); // funciona en MPI?
-		printf("V[%d] = %f\n", i, V[i]);
+		V[i] = (double)rand() / (double)(RAND_MAX);
 	}
 
 	timetick = dwalltime();
 	double *part;
 	// Enviar los bloques a cada proceso //Scatter
+
 	//MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
 	MPI_Scatter(V, block_size, MPI_DOUBLE, V, block_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-  	printf("Enviado todo\n");
 
 
 	while (!convergeGlobal) 
 	{
 		MPI_Request request;
-			MPI_Status status;
+		MPI_Status status;
 
 		MPI_Isend(V+block_size-1, 1, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
 		// recibo el valor del vecino derecho
-			MPI_Irecv(V+block_size, 1, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
-			MPI_Wait(&request, &status);
+		MPI_Irecv(V+block_size, 1, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
+		MPI_Wait(&request, &status);
 		
 		// Reduccion
 		for (int i = 1; i < block_size; i++)
@@ -93,33 +87,21 @@ void root_process(int size) {
 		MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
 	}
 
-
-  	printf("Iteraciones: %d\n",iteraciones);
-
 	//MPI_Gather(part, N/nProcs, MPI_CHAR, message, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
 	MPI_Gather(V2, block_size, MPI_DOUBLE, V, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD); 
 
-	
-
-	for (int i = 0; i < N; i++)
-	{
-		printf("Root V2[%d] = %f\n", i, V[i]);
-	}
-
 	printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
-  /*for (int i = 0; i < N; i++) {
-  	printf("V[%d] = %f\n", i, V[i]);
-	}*/
+  printf("Iteraciones: %d\n",iteraciones);
+  
 }
 
 void worker_process(int rank, int size) {
 	double *V, *V2;
 	int block_size = N / size + 2;
+	int endConvergencia = block_size - 1;
 	int converge, iteraciones = 0;
 	int convergeGlobal = 0;
 	double aux;
-
-	printf("Hola %d\n", rank);
 
 	// Aloca memoria para los vectores
 	if (rank == size-1) { //por esto el scatter no funciona para el ultimo proceso.
@@ -127,15 +109,12 @@ void worker_process(int rank, int size) {
 	}
 	V = (double *) malloc(sizeof(double) * block_size);
 	V2 = (double *) malloc(sizeof(double) * block_size);
+
 	// Recibir el bloque
 	double *part;
-	//MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
-	
-	MPI_Scatter(V+1, N / size, MPI_DOUBLE, V+1, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	
-	//MPI_Recv(V, block_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-	printf("%d: Recibi mi vector\n", rank);
+	//MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
+	MPI_Scatter(V+1, N / size, MPI_DOUBLE, V+1, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	while (!convergeGlobal) 
 	{
@@ -160,7 +139,8 @@ void worker_process(int rank, int size) {
 			MPI_Irecv(V, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
 			MPI_Wait(&request, &status);
 		}
-	// Reduccion
+
+		// Reduccion
 		for (int i = 1; i < block_size-1; i++)
 		{
 			V2[i] = (V[i - 1] + V[i] + V[i + 1]) / 3.0;
@@ -175,7 +155,7 @@ void worker_process(int rank, int size) {
 		// Chequeo de convergencia
 		converge = 1;
 		int i = 1;
-		while ((i < block_size-1) && (converge)) // el ultimo no compara el ultimo valor pero funciona igual (??)
+		while ((i < endConvergencia) && (converge)) 
 		{
 			if (fabs(aux - V2[i]) > 0.01) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 			{
@@ -189,17 +169,10 @@ void worker_process(int rank, int size) {
 		// Chequeo de convergencia global
 		MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
 
-		}
+	}
+	MPI_Gather(V2+1, N / size, MPI_DOUBLE, V, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-		MPI_Gather(V2+1, N / size, MPI_DOUBLE, V, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	
-	//for (int i = 0; i < block_size -2; i++)
-	//{
-	//	printf("rank %d V2[%d] = %f\n",rank, i, V2[i]);
-	//}
-	
 }
-
 
 
 int main(int argc, char **argv) {

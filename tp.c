@@ -5,9 +5,9 @@
 
 void swap( double ** x, double ** y)
 {
-		double *temp = *x;
-    *x = *y;
-    *y = temp;
+	double *temp = *x;
+  *x = *y;
+  *y = temp;
 }
 
 double dwalltime()
@@ -81,9 +81,5 @@ int main(int argc, char *argv[])
 	printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
 	
 	printf ("Iteraciones = %d\n", iteraciones);
-
-	/*for (int i = 0; i < N; i++) {
-  	printf("V[%d] = %f\n", i, V[i]);
-	}*/
 
 }

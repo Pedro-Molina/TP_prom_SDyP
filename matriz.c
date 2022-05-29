@@ -38,13 +38,12 @@ int main(int argc, char *argv[])
 	M = (double *)malloc(sizeof(double) * N * N);
 	M2 = (double *)malloc(sizeof(double) * N * N);
 
-	// inicializacion del arreglo
+	// Inicializacion de la matriz
 	for (i = 0; i < N; i++)
 	{
 		for (j = 0; j < N; j++)
 		{
 			M[i * N + j] = (double)rand() / (double)(RAND_MAX); // funciona en MPI?
-			// printf ("M[%d] = %f \n", i, M[i*N+j]);
 		}
 	}
 	double timetick = dwalltime();
@@ -52,7 +51,6 @@ int main(int argc, char *argv[])
 	// loop principal
 	while (!converge)
 	{
-
 		// reduccion
 		int fila;
 		double suma;
@@ -126,12 +124,13 @@ int main(int argc, char *argv[])
 		i = 0;
 		j = 1;
 		double aux = M2[0];
-		// chequeo de convergencia
+
+		// Chequeo de convergencia
 		while ((i < N) && (converge))
 		{
 			while ((j < N) && (converge))
 			{
-				if (fabs(aux - M2[i * N + j]) > 0.01)
+				if (fabs(aux - M2[i*N+j]) > 0.01)
 				{ // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 					converge = 0;
 				}
@@ -143,25 +142,8 @@ int main(int argc, char *argv[])
 
 		swap(&M, &M2);
 		iteraciones++;
-		// printf ("iteracion = %d\n", iteraciones);
-		/*if (iteraciones == 2) {
-			for (i = 0; i < N; i++){
-				for (j = 0; j < N; j++) {
-					printf ("M2[%d,%d] = %f  ", i, j, M2[i*N+j]);
-				}
-				printf("\n");
-			}
-			printf("\n");
-		}*/
 	}
 
 	printf("Tiempo en segundos %f\n", dwalltime() - timetick);
-
-	/*for (i = 0; i < N; i++){
-		for (j = 0; j < N; j++) {
-			printf ("M2[%d,%d] = %f  ", i, j, M2[i*N+j]);
-		}
-		printf("\n");
-	}*/
-	printf("iteraciones = %d", iteraciones);
+	printf("Iteraciones = %d\n", iteraciones);
 }
