@@ -6,7 +6,7 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define N 512
+#define N 4096
 
 void swap(double **x, double **y)
 {
@@ -36,7 +36,7 @@ void root_process(int size) {
 
 	// Aloca memoria para los vectores
 	V = (double *) malloc(sizeof(double) * N);
-	V2 = (double *) malloc(sizeof(double) * block_size+1);
+	V2 = (double *) malloc(sizeof(double) * N);
 
 	// Inicializacion del arreglo
 	for (int i = 0; i < N; i++)
@@ -46,63 +46,65 @@ void root_process(int size) {
 	}
 
 	timetick = dwalltime();
+	double *part;
+	// Enviar los bloques a cada proceso //Scatter
+	//MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
+	MPI_Scatter(V, block_size, MPI_DOUBLE, V, block_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-	// Enviar los bloques a cada proceso
-  for (int id = 1; id < size-1; id++) {
-    MPI_Send(V+id*block_size-1, block_size+2, MPI_DOUBLE, id, 0, MPI_COMM_WORLD);
-  }
-  MPI_Send(V+(size-1)*block_size-1, block_size+1, MPI_DOUBLE, size-1, 0, MPI_COMM_WORLD);
-
-  printf("Enviado todo\n");
+  	printf("Enviado todo\n");
 
 
-  while (!convergeGlobal) 
-  {
-  	// Reduccion
-  	for (int i = 1; i < block_size; i++)
-  	{
-  		V2[i] = (V[i - 1] + V[i] + V[i + 1]) / 3.0;
-  	}
-  	V2[0] = (V[0] + V[1]) / 2.0;
-  
-   	MPI_Bcast(V2, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-  
-  	// Chequeo de convergencia
-  	converge = 1;
-  	int i = 1;
-  	while ((i < block_size) && (converge)) // el ultimo no compara el ultimo valor pero funciona igual (??)
-  	{
-  		if (fabs(V2[0] - V2[i]) > 0.01) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
-  		{
-  			converge = 0;
-  		}
-  		i++;
-  	}
-  
-  	iteraciones++;
+	while (!convergeGlobal) 
+	{
+		MPI_Request request;
+			MPI_Status status;
 
-  	// Valores compartidos
-  	MPI_Request request;
-		MPI_Status status;
+		MPI_Isend(V+block_size-1, 1, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
+		// recibo el valor del vecino derecho
+			MPI_Irecv(V+block_size, 1, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
+			MPI_Wait(&request, &status);
+		
+		// Reduccion
+		for (int i = 1; i < block_size; i++)
+		{
+			V2[i] = (V[i - 1] + V[i] + V[i + 1]) / 3.0;
+		}
+		V2[0] = (V[0] + V[1]) / 2.0;
+	
+		MPI_Bcast(V2, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	
+		// Chequeo de convergencia
+		converge = 1;
+		int i = 1;
+		while ((i < block_size) && (converge)) // el ultimo no compara el ultimo valor pero funciona igual (??)
+		{
+			if (fabs(V2[0] - V2[i]) > 0.01) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+			{
+				converge = 0;
+			}
+			i++;
+		}
+	
+		iteraciones++;
 
-  	MPI_Isend(V2+block_size-1, 1, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
-  	// recibo el valor del vecino derecho
-		MPI_Irecv(V2+block_size, 1, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
-		MPI_Wait(&request, &status);
-  
 		swap(&V, &V2);
 
-  	// Chequeo de convergencia global
-  	MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
-  }
-
-  int max_iteraciones;
-  MPI_Reduce(&iteraciones, &max_iteraciones, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+		// Chequeo de convergencia global
+		MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
+	}
 
 
-  printf("Iteraciones: %d\n", max_iteraciones);
+  	printf("Iteraciones: %d\n",iteraciones);
 
-	//MPI_Gather(V, block_size, MPI_DOUBLE, V, block_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	//MPI_Gather(part, N/nProcs, MPI_CHAR, message, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
+	MPI_Gather(V2, block_size, MPI_DOUBLE, V, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD); 
+
+	
+
+	for (int i = 0; i < N; i++)
+	{
+		printf("Root V2[%d] = %f\n", i, V[i]);
+	}
 
 	printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
   /*for (int i = 0; i < N; i++) {
@@ -120,20 +122,45 @@ void worker_process(int rank, int size) {
 	printf("Hola %d\n", rank);
 
 	// Aloca memoria para los vectores
-	if (rank == size-1) {
+	if (rank == size-1) { //por esto el scatter no funciona para el ultimo proceso.
 		block_size--;
 	}
 	V = (double *) malloc(sizeof(double) * block_size);
 	V2 = (double *) malloc(sizeof(double) * block_size);
-
 	// Recibir el bloque
-  MPI_Recv(V, block_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	double *part;
+	//MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
+	
+	MPI_Scatter(V+1, N / size, MPI_DOUBLE, V+1, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	
+	//MPI_Recv(V, block_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-  printf("%d: Recibi mi vector\n", rank);
+	printf("%d: Recibi mi vector\n", rank);
 
-  while (!convergeGlobal) 
-  {
-	  // Reduccion
+	while (!convergeGlobal) 
+	{
+		MPI_Request request;
+		MPI_Status status;
+
+		if (rank != size-1) {
+			// envio mis valores a los vecinos
+			MPI_Isend(V+1, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
+			MPI_Isend(V+block_size-2, 1, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &request);
+
+			// recibo el valor del vecino izquierdo
+			MPI_Irecv(V, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
+			MPI_Wait(&request, &status);
+			// recibo el valor del vecino derecho
+			MPI_Irecv(V+block_size-1, 1, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &request);
+			MPI_Wait(&request, &status);
+
+		} else {
+			MPI_Isend(V+1, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
+			// recibo el valor del vecino izquierdo
+			MPI_Irecv(V, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
+			MPI_Wait(&request, &status);
+		}
+	// Reduccion
 		for (int i = 1; i < block_size-1; i++)
 		{
 			V2[i] = (V[i - 1] + V[i] + V[i + 1]) / 3.0;
@@ -157,41 +184,20 @@ void worker_process(int rank, int size) {
 			i++;
 		}
 
-		iteraciones++;
-
-		MPI_Request request;
-		MPI_Status status;
-
-		if (rank != size-1) {
-			// envio mis valores a los vecinos
-			MPI_Isend(V2+1, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
-			MPI_Isend(V2+block_size-2, 1, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &request);
-
-			// recibo el valor del vecino izquierdo
-			MPI_Irecv(V2, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
-			MPI_Wait(&request, &status);
-			// recibo el valor del vecino derecho
-			MPI_Irecv(V2+block_size-1, 1, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &request);
-			MPI_Wait(&request, &status);
-
-		} else {
-			MPI_Isend(V2+1, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
-			// recibo el valor del vecino izquierdo
-			MPI_Irecv(V2, 1, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
-			MPI_Wait(&request, &status);
-		}
-
 		swap(&V, &V2);
 
 		// Chequeo de convergencia global
 		MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
 
-	}
+		}
 
-	int max_iteraciones;
-  MPI_Reduce(&iteraciones, &max_iteraciones, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
-
-  MPI_Gather(V+1, N / size, MPI_DOUBLE, V, block_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+		MPI_Gather(V2+1, N / size, MPI_DOUBLE, V, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	
+	//for (int i = 0; i < block_size -2; i++)
+	//{
+	//	printf("rank %d V2[%d] = %f\n",rank, i, V2[i]);
+	//}
+	
 }
 
 

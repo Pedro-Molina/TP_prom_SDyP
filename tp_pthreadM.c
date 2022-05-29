@@ -9,8 +9,8 @@
 int N, T;
 double *M, *M2;
 
-int *converge, *iteraciones;
-int convergencia = 0;
+int *converge;
+int convergenciaGlobal = 0, iteraciones =0;
 pthread_barrier_t barrera1, barrera2;
 
 void swap(double **x, double **y)
@@ -39,10 +39,16 @@ void *function(void *arg)
 	int end = begin + block;
     double suma;
     int fila;
-	//int endConvergencia = end;
-    if (tid == 0) begin++;//se modificaba en cada loop MAL
+
+	int endConvergencia = end;
+
 	if (tid == (T - 1)) end--;
-    while (!convergencia) 
+	if (tid == 0)
+	{
+		M2[0] = (M[0] + M[1] + M[N] + M[N + 1]) / 4.0; 
+		begin++;
+	}
+    while (!convergenciaGlobal) 
     {
         if (tid == 0)
         {
@@ -106,9 +112,10 @@ void *function(void *arg)
 
         converge[tid] = 1;
 		i = begin; j = 0;
-		double aux = M2[0];
+		double aux = M2[0];// esperar a que el primero escriba?
+		
 		//chequeo de convergencia
-		while ((i < end) && (converge[tid])) { 
+		while ((i < endConvergencia) && (converge[tid])) {// correccion de end de convergencia
 			while ((j < N) && (converge[tid])) {
 				if (fabs(aux - M2[i*N+j]) > 0.01){	//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 						converge[tid] = 0;
@@ -119,13 +126,30 @@ void *function(void *arg)
 			i++;
 		}
 
-        iteraciones[tid]++;
-        
-        pthread_barrier_wait(&barrera1);
+		pthread_barrier_wait(&barrera1);
 		// pasada la barrera, terminaron todos los trabajadores y el main chequea la convergencia
+		if (tid == 0)
+		{
+		// chequear convergencia
+		convergenciaGlobal = 1;
+		int i = 0;
+		while ((i < T) && (convergenciaGlobal))
+		{
+			if (converge[i++] == 0)
+			{
+				convergenciaGlobal = 0;
+			}
+		}
+
+		swap(&M, &M2);
+
+		M2[0] = (M[0] + M[1] + M[N] + M[N + 1]) / 4.0;
+		
+
+		iteraciones ++;
+		}
 		pthread_barrier_wait(&barrera2);
 		// pasado el chequeo de convergencia, seguimos trabajando
-
 
     }
 
@@ -152,17 +176,16 @@ int main(int argc, const char *argv[])
 
     for (i = 0; i < N; i++){
 		for (j = 0; j < N; j++) {
-			M[i*N+j] = (double)rand()/(double)(RAND_MAX); //funciona en MPI?
+			M[i*N+j] = (double)rand()/(double)(RAND_MAX); 
 			//printf ("M[%d] = %f \n", i, M[i*N+j]); 
 		}
 	}
-
+	
     converge = (int *)malloc(sizeof(int) * T);
-	iteraciones = (int *)malloc(sizeof(int) * T);
+
 	for (int i = 0; i < T; i++)
 	{
 		converge[i] = 0;
-		iteraciones[i] = 0;
 	}
 
     pthread_t myThreads[T];
@@ -170,8 +193,8 @@ int main(int argc, const char *argv[])
 
 	double timetick = dwalltime();
 
-    pthread_barrier_init(&barrera1, NULL, T + 1); // barrera de T+1 threads (se cuenta el main)
-	pthread_barrier_init(&barrera2, NULL, T + 1); // barrera de T+1 threads (se cuenta el main)
+    pthread_barrier_init(&barrera1, NULL, T ); // barrera de T+1 threads (se cuenta el main)
+	pthread_barrier_init(&barrera2, NULL, T ); // barrera de T+1 threads (se cuenta el main)
 
 
 	for (int id = 0; id < T; id++)
@@ -180,34 +203,6 @@ int main(int argc, const char *argv[])
 		pthread_create(&myThreads[id], NULL, &function, (void *)&thread_ids[id]);
 	}
 
-    convergencia = 0;
-	while (!convergencia)
-	{
-		pthread_barrier_wait(&barrera1);
-
-		// chequear convergencia
-		convergencia = 1;
-		int i = 0;
-		while ((i < T) && (convergencia))
-		{
-			if (converge[i++] == 0)
-			{
-				convergencia = 0;
-			}
-		}
-
-		//printf("Swap \n");
-		swap(&M, &M2);
-
-		pthread_barrier_wait(&barrera2);
-	}
-
-	int max_iter = -1;
-	for (int i = 0; i < T; i++)
-	{
-		if (iteraciones[i] > max_iter)
-			max_iter = iteraciones[i];
-	}
 	
 	for (int id = 0; id < T; id++)
 	{
@@ -215,7 +210,7 @@ int main(int argc, const char *argv[])
 	}
 
 	printf("Tiempo en segundos %f\n", dwalltime() - timetick);
-	printf("iteraciones = %d\n", max_iter);
+	printf("iteraciones = %d\n", iteraciones);
 
     /*for (i = 0; i < N; i++){
 		for (j = 0; j < N; j++) {

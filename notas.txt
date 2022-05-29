@@ -1,0 +1,1 @@
+- Capaz hay que agregar una barrera antes de la convergencia, porque el primero tiene que haberlo calculado antes de que el resto se pueda fijar la convergencia.
