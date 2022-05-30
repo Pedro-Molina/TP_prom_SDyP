@@ -4,7 +4,7 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define N 512
+#define N 1024
 
 void swap(double **x, double **y)
 {
@@ -25,7 +25,7 @@ double dwalltime()
 
 void root_process(int size)
 {
-    double *M, *M2;
+    double *M, *M2, *Maux;
     int block_size = (N * N) / size;
     int converge, iteraciones = 0;
     int convergeGlobal = 0;
@@ -36,8 +36,8 @@ void root_process(int size)
 
     // Aloca memoria para los vectores
     M = (double *)malloc(sizeof(double) * N * N);
-    M2 = (double *)malloc(sizeof(double) * N * N);
-
+    M2 = (double *)malloc(sizeof(double) * (block_size + N) );
+    Maux = M;
     // Inicializacion del arreglo
     for (int i = 0; i < N; i++)
     {
@@ -46,7 +46,7 @@ void root_process(int size)
             M[i * N + j] = (double)rand() / (double)(RAND_MAX); // funciona en MPI?
         }
     }
-
+    MPI_Barrier(MPI_COMM_WORLD); //barrera para exlcluir el tiempo de alocacion de memoria del tiempo del algoritmo
     timetick = dwalltime();
 
     // Enviar los bloques a cada proceso
@@ -140,7 +140,16 @@ void root_process(int size)
     }
 
     //MPI_Gather(part, N/nProcs, MPI_CHAR, message, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
-    MPI_Gather(M2, block_size, MPI_DOUBLE, M2, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Gather(M, block_size, MPI_DOUBLE, Maux, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            printf(" M[%d] = %f ", i, M[i]);
+        }
+        printf("\n");
+    }
 
     printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
     printf("Iteraciones: %d\n", iteraciones);
@@ -168,6 +177,7 @@ void worker_process(int rank, int size)
     M = (double *)malloc(sizeof(double) * block_size);
     M2 = (double *)malloc(sizeof(double) * block_size);
 
+    MPI_Barrier(MPI_COMM_WORLD); //barrera para exlcluir el tiempo de alocacion de memoria del tiempo del algoritmo
     // Recibir el bloque
     //MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Scatter(M+N,(N * N) / size, MPI_DOUBLE, M+N, (N * N) / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -270,7 +280,7 @@ void worker_process(int rank, int size)
         
 	}
 
-	MPI_Gather(M2 +N, (N * N) / size, MPI_DOUBLE, M2+N, (N * N) / size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gather(M +N, (N * N) / size, MPI_DOUBLE, M+N, (N * N) / size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 }
 

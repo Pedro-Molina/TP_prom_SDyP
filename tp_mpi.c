@@ -24,7 +24,7 @@ double dwalltime()
 }
 
 void root_process(int size) {
-	double *V, *V2;
+	double *V, *V2, *Vaux;
 	int block_size = N / size;
 	int converge, iteraciones = 0;
 	int convergeGlobal = 0;
@@ -32,16 +32,15 @@ void root_process(int size) {
 
 	// Aloca memoria para los vectores
 	V = (double *) malloc(sizeof(double) * N);
-	V2 = (double *) malloc(sizeof(double) * N);
-
+	V2 = (double *) malloc(sizeof(double) * block_size +1);
+	Vaux = V;
 	// Inicializacion del arreglo
 	for (int i = 0; i < N; i++)
 	{
 		V[i] = (double)rand() / (double)(RAND_MAX);
 	}
-
+	MPI_Barrier(MPI_COMM_WORLD); //barrera para exlcluir el tiempo de alocacion de memoria del tiempo del algoritmo
 	timetick = dwalltime();
-	double *part;
 	// Enviar los bloques a cada proceso //Scatter
 
 	//MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
@@ -88,10 +87,15 @@ void root_process(int size) {
 	}
 
 	//MPI_Gather(part, N/nProcs, MPI_CHAR, message, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
-	MPI_Gather(V2, block_size, MPI_DOUBLE, V, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD); 
+	MPI_Gather(V, block_size, MPI_DOUBLE, Vaux, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD); 
 
 	printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
   printf("Iteraciones: %d\n",iteraciones);
+
+  	for (int i = 0; i < N; i++)
+	{
+		printf ("V[%d] = %f ",i,V[i]);
+	}
   
 }
 
@@ -111,7 +115,7 @@ void worker_process(int rank, int size) {
 	V2 = (double *) malloc(sizeof(double) * block_size);
 
 	// Recibir el bloque
-	double *part;
+	MPI_Barrier(MPI_COMM_WORLD); //barrera para exlcluir el tiempo de alocacion de memoria del tiempo del algoritmo
 
 	//MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
 	MPI_Scatter(V+1, N / size, MPI_DOUBLE, V+1, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -170,7 +174,7 @@ void worker_process(int rank, int size) {
 		MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
 
 	}
-	MPI_Gather(V2+1, N / size, MPI_DOUBLE, V, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gather(V+1, N / size, MPI_DOUBLE, V, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 }
 

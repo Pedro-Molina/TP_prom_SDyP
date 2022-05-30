@@ -40,6 +40,8 @@ void *function(void *arg)
 	int begin = block * tid;
 	int end = begin + block;
 	int endConvergencia = end;
+	int i;
+	double aux, aux2;
 
 	if (tid == 0) begin++;
 	if (tid == (T - 1))
@@ -68,13 +70,13 @@ void *function(void *arg)
 		}
 
 		// chequeo de convergencia
-		int i = begin; // el primero no compara el primer valor (no pasa nada)
-		double aux = V2[0];
-
+		i = begin; // el primero no compara el primer valor (no pasa nada)
+		aux = V2[0];
 		converge[tid] = 1;
 		while ((i < endConvergencia) && (converge[tid])) 
 		{
-			if (fabs(aux - V2[i]) > 0.01) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+			aux2 = aux - V2[i];
+			if ((aux2 > 0.01) || (aux2 < -0.01) ) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 			{
 				converge[tid] = 0;
 			}
@@ -142,10 +144,13 @@ int main(int argc, const char *argv[])
 	pthread_t myThreads[T];
 	int thread_ids[T];
 
-	double timetick = dwalltime();
+	
 
 	pthread_barrier_init(&barrera1, NULL, T); // barrera de T threads
 	pthread_barrier_init(&barrera2, NULL, T); // barrera de T threads
+
+
+	double timetick = dwalltime();
 
 	for (int id = 0; id < T; id++)
 	{

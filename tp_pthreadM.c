@@ -46,6 +46,7 @@ void *function(void *arg)
 		M2[0] = (M[0] + M[1] + M[N] + M[N + 1]) / 4.0; 
 		begin++;
 	}
+	pthread_barrier_wait(&barrera1); // los hilos se deben esperar para que todos tengan el valor de V[0] en la primera iteracion
 
     while (!convergenciaGlobal) 
     {
@@ -187,11 +188,12 @@ int main(int argc, const char *argv[])
     pthread_t myThreads[T];
 	int thread_ids[T];
 
+	
+
+    pthread_barrier_init(&barrera1, NULL, T); // barrera de T threads
+	pthread_barrier_init(&barrera2, NULL, T); // barrera de T threads 
+
 	double timetick = dwalltime();
-
-    pthread_barrier_init(&barrera1, NULL, T); // barrera de T+1 threads (se cuenta el main)
-	pthread_barrier_init(&barrera2, NULL, T); // barrera de T+1 threads (se cuenta el main)
-
 
 	for (int id = 0; id < T; id++)
 	{
