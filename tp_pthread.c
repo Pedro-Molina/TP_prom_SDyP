@@ -52,6 +52,8 @@ void *function(void *arg)
 		V2[0] = (V[0] + V[1]) / 2;
 	}
 
+	pthread_barrier_wait(&barrera1); // los hilos se deben esperar para que todos tengan el valor de V[0] en la primera iteracion
+
 	while (!convergenciaGlobal) // los hilos deben seguir recalculando los valores si no convergio todo el vector, como en el secuencial, no se puede determinar la convergencia por partes
 	{
 		
