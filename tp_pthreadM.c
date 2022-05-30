@@ -116,7 +116,7 @@ void *function(void *arg)
 		while ((i < endConvergencia) && (converge[tid])) {// correccion de end de convergencia
 			while ((j < N) && (converge[tid])) {
 				if (fabs(aux - M2[i*N+j]) > 0.01){	//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
-						converge[tid] = 0;
+					converge[tid] = 0;
 				}
 				j++;
 			}
@@ -174,7 +174,6 @@ int main(int argc, const char *argv[])
     for (i = 0; i < N; i++){
 		for (j = 0; j < N; j++) {
 			M[i*N+j] = (double)rand()/(double)(RAND_MAX); 
-			//printf ("M[%d] = %f \n", i, M[i*N+j]); 
 		}
 	}
 	
@@ -208,14 +207,6 @@ int main(int argc, const char *argv[])
 
 	printf("Tiempo en segundos %f\n", dwalltime() - timetick);
 	printf("Iteraciones = %d\n", iteraciones);
-
-    /*for (i = 0; i < N; i++){
-		for (j = 0; j < N; j++) {
-			//M[i*N+j] = (double)rand()/(double)(RAND_MAX); //funciona en MPI?
-			printf ("M[%d] = %f ", i, M[i*N+j]); 
-		}
-        printf("\n");
-	}*/
 
 	pthread_barrier_destroy(&barrera1);
 	pthread_barrier_destroy(&barrera2);

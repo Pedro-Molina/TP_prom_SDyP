@@ -34,8 +34,6 @@ void root_process(int size)
     int begin = 1;
     int end = N/size;
 
-    printf("Root\n");
-
     // Aloca memoria para los vectores
     M = (double *)malloc(sizeof(double) * N * N);
     M2 = (double *)malloc(sizeof(double) * N * N);
@@ -46,21 +44,15 @@ void root_process(int size)
         for (int j = 0; j < N; j++)
         {
             M[i * N + j] = (double)rand() / (double)(RAND_MAX); // funciona en MPI?
-            //printf("M[%d] = %f ", i, M[i * N + j]);
         }
-        //printf("\n");
     }
 
     timetick = dwalltime();
 
     // Enviar los bloques a cada proceso
 
-    // Enviar los bloques a cada proceso //Scatter
     //MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Scatter(M, block_size, MPI_DOUBLE, M2, block_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-
-    printf("Enviado todo\n");
 
     while (!convergeGlobal) 
     {
@@ -130,7 +122,7 @@ void root_process(int size)
         while ((i < end) && (converge)) { 
 			while ((j < N) && (converge)) {
 				if (fabs(aux - M2[i*N+j]) > 0.01){	//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
-						converge = 0;
+					converge = 0;
 				}
 				j++;
 			}
@@ -147,20 +139,10 @@ void root_process(int size)
         MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
     }
 
-    printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
-
     //MPI_Gather(part, N/nProcs, MPI_CHAR, message, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Gather(M2, block_size, MPI_DOUBLE, M2, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-          printf("M2[%d] = %f ", i, M2[i * N + j]);
-        }
-        printf("\n");
-    }
-
+    printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
     printf("Iteraciones: %d\n", iteraciones);
 
 }
@@ -171,12 +153,11 @@ void worker_process(int rank, int size)
     int block_size = (N * N) / size + 2 * N;
     int converge;
     int convergeGlobal = 0;
-    double timetick,aux,suma;
+    double timetick, aux, suma;
     int begin = 1;
     int end = N/size +1;
+    int endConvergencia = end;
     int fila,i,j,k;
-
-    // printf("Hola %d\n", rank);
 
     // Aloca memoria para los vectores
     if (rank == size - 1)
@@ -190,9 +171,6 @@ void worker_process(int rank, int size)
     // Recibir el bloque
     //MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Scatter(M+N,(N * N) / size, MPI_DOUBLE, M+N, (N * N) / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-
-    printf("%d: Recibi mi vector\n", rank);
-    
 
     while (!convergeGlobal) 
   {
@@ -273,8 +251,8 @@ void worker_process(int rank, int size)
         i = 1;
         j = 0;
         converge =1;
-        int endConv = N/size+1;
-        while ((i < endConv) && (converge)) { 
+        
+        while ((i < endConvergencia) && (converge)) { 
 			while ((j < N) && (converge)) {
 				if (fabs(aux - M2[i*N+j]) > 0.01){	//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 						converge = 0;
