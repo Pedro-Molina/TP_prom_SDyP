@@ -24,7 +24,9 @@ int main(int argc, char *argv[])
 {
 	int N;
 	double *M, *M2;
-	int i, j, iteraciones = 0;
+	int i, j, k, iteraciones = 0;
+	int fila;
+	double suma, aux;
 	int converge = 0;
 
 	// Controla los argumentos al programa
@@ -33,6 +35,9 @@ int main(int argc, char *argv[])
 		printf("\nUsar: %s n\n  n: matriz de NxN\n", argv[0]);
 		exit(1);
 	}
+
+	int begin = 1;
+	int end = N-1;
 
 	// Aloca memoria para las matrices
 	M = (double *)malloc(sizeof(double) * N * N);
@@ -52,14 +57,12 @@ int main(int argc, char *argv[])
 	while (!converge)
 	{
 		// reduccion
-		int fila;
-		double suma;
-		for (i = 1; i < N - 1; i++)
+		for (i = begin; i < end; i++)
 		{
 			for (j = 1; j < N - 1; j++)
 			{
 				suma = 0;
-				for (int k = i - 1; k <= i + 1; k++)
+				for (k = i - 1; k <= i + 1; k++)
 				{
 					fila = k * N;
 					suma += M[fila + j - 1] + M[fila + j] + M[fila + j + 1];
@@ -99,7 +102,7 @@ int main(int argc, char *argv[])
 		}
 
 		// borde izquierdo
-		for (i = 1; i < N - 1; i++)
+		for (i = begin; i < end; i++)
 		{
 			suma = 0;
 			for (j = 0; j <= 1; j++)
@@ -110,7 +113,7 @@ int main(int argc, char *argv[])
 		}
 
 		// borde derecho
-		for (i = 1; i < N - 1; i++)
+		for (i = begin; i < end; i++)
 		{
 			suma = 0;
 			for (j = N - 2; j <= N - 1; j++)
@@ -123,7 +126,7 @@ int main(int argc, char *argv[])
 		converge = 1;
 		i = 0;
 		j = 1;
-		double aux = M2[0];
+		aux = M2[0];
 
 		// Chequeo de convergencia
 		while ((i < N) && (converge))

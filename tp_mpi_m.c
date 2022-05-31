@@ -142,15 +142,6 @@ void root_process(int size)
     //MPI_Gather(part, N/nProcs, MPI_CHAR, message, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Gather(M, block_size, MPI_DOUBLE, Maux, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            printf(" M[%d] = %f ", i, M[i]);
-        }
-        printf("\n");
-    }
-
     printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
     printf("Iteraciones: %d\n", iteraciones);
 
