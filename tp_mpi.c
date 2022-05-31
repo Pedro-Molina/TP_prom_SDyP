@@ -32,7 +32,7 @@ void root_process(int size) {
 
 	// Aloca memoria para los vectores
 	V = (double *) malloc(sizeof(double) * N);
-	V2 = (double *) malloc(sizeof(double) * block_size +1);
+	V2 = (double *) malloc(sizeof(double) * (block_size +1));
 	Vaux = V;
 	// Inicializacion del arreglo
 	for (int i = 0; i < N; i++)
