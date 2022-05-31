@@ -149,4 +149,8 @@ int main(int argc, char *argv[])
 
 	printf("Tiempo en segundos %f\n", dwalltime() - timetick);
 	printf("Iteraciones = %d\n", iteraciones);
+
+	free(M);
+	free(M2);
+	return 0;
 }

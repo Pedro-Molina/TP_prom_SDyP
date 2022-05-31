@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
   }
 
  	// Aloca memoria para los arreglos
-  V = (double*) malloc(sizeof(double)*N);
+  	V = (double*) malloc(sizeof(double)*N);
 	V2 = (double*) malloc(sizeof(double)*N);
 	
 	// Inicializacion del arreglo
@@ -82,4 +82,7 @@ int main(int argc, char *argv[])
 	
 	printf ("Iteraciones = %d\n", iteraciones);
 
+	free(V);
+	free(V2);
+	return 0;
 }

@@ -171,5 +171,9 @@ int main(int argc, const char *argv[])
 	pthread_barrier_destroy(&barrera1);
 	pthread_barrier_destroy(&barrera2);
 
+	free(V);
+	free(V2);
+	free(converge);
+
 	return 0;
 }

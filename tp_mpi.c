@@ -28,7 +28,7 @@ void root_process(int size) {
 	int block_size = N / size;
 	int converge, iteraciones = 0;
 	int convergeGlobal = 0;
-	double timetick;
+	double timetick, aux;
 
 	// Aloca memoria para los vectores
 	V = (double *) malloc(sizeof(double) * N);
@@ -69,9 +69,10 @@ void root_process(int size) {
 		// Chequeo de convergencia
 		converge = 1;
 		int i = 1;
+		aux = V2[0];
 		while ((i < block_size) && (converge)) // el ultimo no compara el ultimo valor pero funciona igual (??)
 		{
-			if (fabs(V2[0] - V2[i]) > 0.01) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+			if (fabs( aux - V2[i]) > 0.01) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 			{
 				converge = 0;
 			}
@@ -90,12 +91,10 @@ void root_process(int size) {
 	MPI_Gather(V, block_size, MPI_DOUBLE, Vaux, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD); 
 
 	printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
-  printf("Iteraciones: %d\n",iteraciones);
+  	printf("Iteraciones: %d\n",iteraciones);
 
-  	for (int i = 0; i < N; i++)
-	{
-		printf ("V[%d] = %f ",i,V[i]);
-	}
+  	free(V);
+	free(V2);
   
 }
 
@@ -175,6 +174,9 @@ void worker_process(int rank, int size) {
 
 	}
 	MPI_Gather(V+1, N / size, MPI_DOUBLE, V, N / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
+	free(V);
+	free(V2);
 
 }
 

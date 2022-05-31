@@ -145,6 +145,9 @@ void root_process(int size)
     printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
     printf("Iteraciones: %d\n", iteraciones);
 
+    free(M);
+	free(M2);
+
 }
 
 void worker_process(int rank, int size)
@@ -272,6 +275,8 @@ void worker_process(int rank, int size)
 	}
 
 	MPI_Gather(M +N, (N * N) / size, MPI_DOUBLE, M+N, (N * N) / size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    free(M);
+	free(M2);
 
 }
 
