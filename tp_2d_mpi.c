@@ -28,29 +28,29 @@ void root_process(int size, int N)
     int block_size = (N * N) / size;
     int converge, iteraciones = 0;
     int convergeGlobal = 0;
-    double timetick,suma;
+    double timetick,suma, aux;
     int fila,i,j,k;
     int begin = 1;
     int end = N/size;
 
-    // Aloca memoria para los vectores
+    // Aloca memoria para la matriz y el bloque
     M = (double *)malloc(sizeof(double) * N * N);
-    M2 = (double *)malloc(sizeof(double) * (block_size + N) );
-    Maux = M;
+    M2 = (double *)malloc(sizeof(double) * (block_size + N));
+    Maux = M;   // necesario para el gather
+
     // Inicializacion del arreglo
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
         {
-            M[i * N + j] = (double)rand() / (double)(RAND_MAX); // funciona en MPI?
+            M[i * N + j] = (double)rand() / (double)(RAND_MAX); 
         }
     }
-    MPI_Barrier(MPI_COMM_WORLD); //barrera para exlcluir el tiempo de alocacion de memoria del tiempo del algoritmo
+
+    MPI_Barrier(MPI_COMM_WORLD); //barrera para excluir el tiempo de alocacion de memoria del tiempo del algoritmo
     timetick = dwalltime();
 
     // Enviar los bloques a cada proceso
-
-    //MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Scatter(M, block_size, MPI_DOUBLE, M2, block_size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     while (!convergeGlobal) 
@@ -58,6 +58,7 @@ void root_process(int size, int N)
         MPI_Request request;
 		MPI_Status status;
 
+        // envio el valor al vecino derecho
         MPI_Isend(M+block_size-N, N, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
         // recibo el valor del vecino derecho
 		MPI_Irecv(M+block_size, N, MPI_DOUBLE, 1, 1, MPI_COMM_WORLD, &request);
@@ -82,7 +83,7 @@ void root_process(int size, int N)
         for (i = begin; i < end; i++){
             for (j = 1; j < N - 1; j++) {
                 suma = 0;
-                for (int k = i-1; k <= i+1; k++) { 
+                for (k = i-1; k <= i+1; k++) { 
                     fila = k*N;
                     suma += M[fila+j-1] + M[fila+j] + M[fila+j+1];
                 }
@@ -112,15 +113,19 @@ void root_process(int size, int N)
             M2[i * N + N - 1] = suma / 6.0;
         }
 
+        // broadcast de M2[0,0]
         MPI_Bcast(M2, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD); 
         
         i = 0;
         j = 1;
         converge =1;
-        double aux = M2[0];
-        while ((i < end) && (converge)) { 
-			while ((j < N) && (converge)) {
-				if (fabs(aux - M2[i*N+j]) > 0.01){	//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+        aux = M2[0];
+        while ((i < end) && (converge)) 
+        { 
+			while ((j < N) && (converge)) 
+            {
+				if (fabs(aux - M2[i*N+j]) > 0.01)   //si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+                {	
 					converge = 0;
 				}
 				j++;
@@ -138,7 +143,6 @@ void root_process(int size, int N)
         MPI_Allreduce(&converge, &convergeGlobal, 1, MPI_INT, MPI_LAND, MPI_COMM_WORLD);
     }
 
-    //MPI_Gather(part, N/nProcs, MPI_CHAR, message, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Gather(M, block_size, MPI_DOUBLE, Maux, block_size , MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     printf("Tiempo en segundos: %f\n", dwalltime() - timetick);
@@ -161,7 +165,7 @@ void worker_process(int rank, int size, int N)
     int endConvergencia = end;
     int fila,i,j,k;
 
-    // Aloca memoria para los vectores
+    // Aloca memoria para los bloques
     if (rank == size - 1)
     {
         block_size -= N;
@@ -170,18 +174,19 @@ void worker_process(int rank, int size, int N)
     M = (double *)malloc(sizeof(double) * block_size);
     M2 = (double *)malloc(sizeof(double) * block_size);
 
-    MPI_Barrier(MPI_COMM_WORLD); //barrera para exlcluir el tiempo de alocacion de memoria del tiempo del algoritmo
+    MPI_Barrier(MPI_COMM_WORLD); //barrera para excluir el tiempo de alocacion de memoria del tiempo del algoritmo
+
     // Recibir el bloque
-    //MPI_Scatter(message, N/nProcs, MPI_CHAR, part, N/nProcs, MPI_CHAR, 0, MPI_COMM_WORLD);
     MPI_Scatter(M+N,(N * N) / size, MPI_DOUBLE, M+N, (N * N) / size, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     while (!convergeGlobal) 
-  {
-	  // Reduccion
+    {
+	   // Reduccion
         MPI_Request request;
 		MPI_Status status;
 
-        if (rank != size-1) {
+        if (rank != size-1) 
+        {
 			// envio mis valores a los vecinos
 			MPI_Isend(M+N, N, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
 			MPI_Isend(M+block_size-2*N, N, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &request);
@@ -192,33 +197,38 @@ void worker_process(int rank, int size, int N)
 			// recibo el valor del vecino derecho
 			MPI_Irecv(M+block_size-N, N, MPI_DOUBLE, rank+1, 1, MPI_COMM_WORLD, &request);
 			MPI_Wait(&request, &status);
-
-		} else {
+		} else 
+        {
 			MPI_Isend(M+N, N, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
 			// recibo el valor del vecino izquierdo
 			MPI_Irecv(M, N, MPI_DOUBLE, rank-1, 1, MPI_COMM_WORLD, &request);
 			MPI_Wait(&request, &status);
 		}
 
-        if (rank == size-1) {
-
+        if (rank == size-1) 
+        {
             M2[(end)*N] = (M[(end-1)*N] + M[(end-1)*N+1] + M[(end)*N] + M[(end)*N+1]) / 4.0;	// inferior izq
             M2[(end)*N + N-1] = (M2[(end)*N + N-1] + M[(end)*N + N-2] + M[(end-1)*N+ N-1] + M[(end-1)*N+ N-2]) / 4.0;				// inferior der
 
             // borde inferior
-            for (j = 1; j < N-1; j++) {
+            for (j = 1; j < N-1; j++) 
+            {
                 suma = 0;
-                for (i = end-1; i <= end; i++) {
+                for (i = end-1; i <= end; i++) 
+                {
                     fila = i*N;
                     suma += M[fila+j-1] + M[fila+j] + M[fila+j+1];
                 }
                 M2[(end)*N+j] = suma / 6.0;
             }
         }
-	    for (i = begin; i < end ; i++){
-			for (j = 1; j < N - 1; j++) {
+	    for (i = begin; i < end ; i++)
+        {
+			for (j = 1; j < N - 1; j++) 
+            {
 				suma = 0;
-				for (int k = i-1; k <= i+1; k++) { 
+				for (k = i-1; k <= i+1; k++) 
+                { 
 					fila = k*N;
 					suma += M[fila+j-1] + M[fila+j] + M[fila+j+1];
 				}
@@ -255,10 +265,13 @@ void worker_process(int rank, int size, int N)
         j = 0;
         converge =1;
         
-        while ((i < endConvergencia) && (converge)) { 
-			while ((j < N) && (converge)) {
-				if (fabs(aux - M2[i*N+j]) > 0.01){	//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
-						converge = 0;
+        while ((i < endConvergencia) && (converge)) 
+        { 
+			while ((j < N) && (converge)) 
+            {
+				if (fabs(aux - M2[i*N+j]) > 0.01) //si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+                {	
+					converge = 0;
 				}
 				j++;
 			}

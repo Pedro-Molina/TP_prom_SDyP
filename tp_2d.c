@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 	{
 		for (j = 0; j < N; j++)
 		{
-			M[i * N + j] = (double)rand() / (double)(RAND_MAX); // funciona en MPI?
+			M[i * N + j] = (double)rand() / (double)(RAND_MAX);
 		}
 	}
 	double timetick = dwalltime();
@@ -131,14 +131,13 @@ int main(int argc, char *argv[])
 		i = 0;
 		j = 1;
 		aux = M2[0];
-
 		// Chequeo de convergencia
 		while ((i < N) && (converge))
 		{
 			while ((j < N) && (converge))
 			{
-				if (fabs(aux - M2[i*N+j]) > 0.01)
-				{ // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+				if (fabs(aux - M2[i*N+j]) > 0.01)	// si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+				{ 	
 					converge = 0;
 				}
 				j++;

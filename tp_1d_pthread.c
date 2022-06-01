@@ -41,7 +41,7 @@ void *function(void *arg)
 	int end = begin + block;
 	int endConvergencia = end;
 	int i;
-	double aux, aux2;
+	double aux;
 
 	if (tid == 0) begin++;
 	if (tid == (T - 1))
@@ -58,7 +58,6 @@ void *function(void *arg)
 
 	while (!convergenciaGlobal) // los hilos deben seguir recalculando los valores si no convergio todo el vector, como en el secuencial, no se puede determinar la convergencia por partes
 	{
-		
 		if (tid == (T - 1))
 		{
 			V2[N - 1] = (V[N - 1] + V[N - 2]) / 2;
@@ -70,13 +69,12 @@ void *function(void *arg)
 		}
 
 		// chequeo de convergencia
-		i = begin; // el primero no compara el primer valor (no pasa nada)
+		i = begin;
 		aux = V2[0];
 		converge[tid] = 1;
 		while ((i < endConvergencia) && (converge[tid])) 
 		{
-			aux2 = aux - V2[i];
-			if ((aux2 > 0.01) || (aux2 < -0.01) ) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
+			if ((fabs(aux - V2[i])) > 0.01) // si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 			{
 				converge[tid] = 0;
 			}

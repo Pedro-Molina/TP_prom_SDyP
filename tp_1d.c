@@ -36,19 +36,21 @@ int main(int argc, char *argv[])
   }
 
  	// Aloca memoria para los arreglos
-  	V = (double*) malloc(sizeof(double)*N);
+  V = (double*) malloc(sizeof(double)*N);
 	V2 = (double*) malloc(sizeof(double)*N);
 	
 	// Inicializacion del arreglo
 	for (i = 0; i < N; i++)
 	{
-		V[i] = (double) rand() / (double)(RAND_MAX); //funciona en MPI?
+		V[i] = (double) rand() / (double)(RAND_MAX);
 	}
 	
 	timetick = dwalltime();
 	// Loop principal
 	while (!converge)
 	{
+		// Valores de los extremos
+		V2[0] = (V[0] + V[1]) / 2.0;
 	
 		// Reduccion
 		for (i = 1; i < N - 1; i++)
@@ -56,8 +58,6 @@ int main(int argc, char *argv[])
 			V2[i] = (V[i-1] + V[i] + V[i+1]) / 3.0;
 		}
 		
-		// Valores de los extremos
-		V2[0] = (V[0] + V[1]) / 2.0;
 		V2[N-1] = (V[N-1] + V[N-2]) / 2.0;
 		
 		converge = 1;

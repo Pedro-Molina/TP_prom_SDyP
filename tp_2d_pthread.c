@@ -35,7 +35,7 @@ void *function(void *arg)
 	int block = N/ T;
 	int begin = block * tid;
 	int end = begin + block;
-    double suma;
+    double suma, aux;
     int fila;
 
 	int endConvergencia = end;
@@ -111,10 +111,10 @@ void *function(void *arg)
 
         converge[tid] = 1;
 		i = begin; j = 0;
-		double aux = M2[0];// esperar a que el primero escriba?
+		aux = M2[0];
 		
 		//chequeo de convergencia
-		while ((i < endConvergencia) && (converge[tid])) {// correccion de end de convergencia
+		while ((i < endConvergencia) && (converge[tid])) {
 			while ((j < N) && (converge[tid])) {
 				if (fabs(aux - M2[i*N+j]) > 0.01){	//si la diferencia en mayor a 0.01 el arreglo no llego a la convergencia
 					converge[tid] = 0;
@@ -189,7 +189,6 @@ int main(int argc, const char *argv[])
 	int thread_ids[T];
 
 	
-
     pthread_barrier_init(&barrera1, NULL, T); // barrera de T threads
 	pthread_barrier_init(&barrera2, NULL, T); // barrera de T threads 
 
