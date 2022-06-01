@@ -56,26 +56,12 @@ int main(int argc, char *argv[])
 	// loop principal
 	while (!converge)
 	{
-		// reduccion
-		for (i = begin; i < end; i++)
-		{
-			for (j = 1; j < N - 1; j++)
-			{
-				suma = 0;
-				for (k = i - 1; k <= i + 1; k++)
-				{
-					fila = k * N;
-					suma += M[fila + j - 1] + M[fila + j] + M[fila + j + 1];
-				}
-				M2[i * N + j] = suma / 9.0;
-			}
-		}
-
 		// esquinas
 		M2[0] = (M[0] + M[1] + M[N] + M[N + 1]) / 4.0;														 // superior izq
 		M2[N - 1] = (M[N - 1] + M[N - 2] + M[2 * N - 1] + M[2 * N - 2]) / 4.0;								 // superior derecha
 		M2[(N - 1) * N] = (M[(N - 2) * N] + M[(N - 2) * N + 1] + M[(N - 1) * N] + M[(N - 1) * N + 1]) / 4.0; // inferior izq
 		M2[N * N - 1] = (M[N * N - 1] + M[N * N - 2] + M[(N - 1) * N - 1] + M[(N - 1) * N - 2]) / 4.0;		 // inferior der
+
 
 		// borde superior
 		for (j = 1; j < N - 1; j++)
@@ -100,6 +86,24 @@ int main(int argc, char *argv[])
 			}
 			M2[(N - 1) * N + j] = suma / 6.0;
 		}
+		
+		
+		// reduccion
+		for (i = begin; i < end; i++)
+		{
+			for (j = 1; j < N - 1; j++)
+			{
+				suma = 0;
+				for (k = i - 1; k <= i + 1; k++)
+				{
+					fila = k * N;
+					suma += M[fila + j - 1] + M[fila + j] + M[fila + j + 1];
+				}
+				M2[i * N + j] = suma / 9.0;
+			}
+		}
+
+		
 
 		// borde izquierdo
 		for (i = begin; i < end; i++)

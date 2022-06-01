@@ -4,7 +4,6 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define N 1024
 
 void swap(double **x, double **y)
 {
@@ -23,7 +22,7 @@ double dwalltime()
     return sec;
 }
 
-void root_process(int size)
+void root_process(int size, int N)
 {
     double *M, *M2, *Maux;
     int block_size = (N * N) / size;
@@ -150,7 +149,7 @@ void root_process(int size)
 
 }
 
-void worker_process(int rank, int size)
+void worker_process(int rank, int size, int N)
 {
     double *M, *M2;
     int block_size = (N * N) / size + 2 * N;
@@ -227,7 +226,7 @@ void worker_process(int rank, int size)
 			}
 		}
 
-        // borde izquierdo //mejora: recorrer por filas
+        // borde izquierdo
         for (i = begin; i < end; i++)
         {
             suma = 0;
@@ -282,7 +281,14 @@ void worker_process(int rank, int size)
 
 int main(int argc, char **argv)
 {
+    
     MPI_Init(&argc, &argv);
+    int N;
+    if ((argc != 2) || ((N = atoi(argv[1])) <= 0))
+	{
+		printf("\nUsar: %s n\n  n: matriz de NxN\n", argv[0]);
+		exit(1);
+	}
 
     int rank, size;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -290,11 +296,11 @@ int main(int argc, char **argv)
 
     if (rank == 0)
     {
-        root_process(size);
+        root_process(size, N);
     }
     else
     {
-        worker_process(rank, size);
+        worker_process(rank, size, N);
     }
 
     MPI_Finalize();
